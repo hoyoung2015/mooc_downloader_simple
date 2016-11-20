@@ -8,6 +8,7 @@ import java.util.*;
 import net.hoyoung.imooc.downloader.download.DownloadScheduler;
 import net.hoyoung.imooc.downloader.model.DownloadInfo;
 import net.hoyoung.imooc.downloader.model.VideoItem;
+import net.hoyoung.imooc.downloader.model.DownloadInfo.DownloadStatus;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,7 @@ public class ImoocDownloader {
 			req.putExtra("videoItem", videoItem);
 			spider.addRequest(req);
 		}
-		spider.thread(5).run();
+		spider.thread(2).run();
 		logger.info("下载地址提取完成，共" + this.videoItems.size() + "条视频：");
 		System.out.println("下载地址提取完成，共" + this.videoItems.size() + "条视频：");
 		for (VideoItem videoItem : videoItems) {
@@ -111,12 +112,13 @@ public class ImoocDownloader {
 
 				String fileName = videoItem.getName() + ext;
 				DownloadInfo bean = new DownloadInfo(downloadUrl, fileName, this.courseName, THREAD_NUM);
+				bean.setDownloadStatus(DownloadStatus.UNDOWNLOAD);
 				tasks.add(bean);
 				// System.out.println(downloadUrl);
 			}
 			System.out.println("开始下载...");
 			new DownloadScheduler(tasks).start();// 开始下载
-			System.out.println("课程 " + this.courseName + " 下载完成");
+			System.out.println("\n课程 " + this.courseName + " 下载完成");
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (InvocationTargetException e) {
@@ -168,7 +170,7 @@ public class ImoocDownloader {
 			for (Selectable a : list) {
 				String href = a.xpath("/a/@href").get();
 				String code = href.substring(href.lastIndexOf("/") + 1);
-				String name = a.xpath("/a/text()").get().replace(":", "'");
+				String name = a.xpath("/a/text()").get().replace(":", "'").replace(" ", "");
 				VideoItem vi = new VideoItem(code, name);
 				ImoocDownloader.this.videoItems.add(vi);// 加入列表
 			}

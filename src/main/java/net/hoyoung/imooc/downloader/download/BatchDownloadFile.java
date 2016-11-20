@@ -12,6 +12,8 @@ import java.net.URL;
 
 import net.hoyoung.imooc.downloader.download.DownloadFile;
 import net.hoyoung.imooc.downloader.model.DownloadInfo;
+import net.hoyoung.imooc.downloader.model.DownloadInfo.DownloadStatus;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +72,7 @@ public class BatchDownloadFile implements Runnable {
 
 	@Override
 	public void run() {
-		downloadInfo.setDownloading(true);
+		downloadInfo.setDownloadStatus(DownloadStatus.DOWNLOADING);
 		// 首次下载，获取下载文件长度
 		if (first) {
 			length = this.getFileSize();// 获取文件长度
@@ -142,11 +144,12 @@ public class BatchDownloadFile implements Runnable {
 					}
 				}
 			}
-			this.downloadInfo.setProgress(100);
 			// 任务完成
 			logger.info("Download task is finished!");
 			// 删除记录信息
 			this.tempFile.delete();
+			downloadInfo.setProgress(100);
+			downloadInfo.setDownloadStatus(DownloadStatus.DOWNLOADED);
 		}
 	}
 

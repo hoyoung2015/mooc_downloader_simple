@@ -18,7 +18,23 @@ public class DownloadInfo {
     
     private int progress = 0;
 
-    private boolean downloading = false;
+    private volatile boolean downloading = false;
+    
+    private volatile DownloadStatus downloadStatus;
+    
+    public DownloadStatus getDownloadStatus() {
+		return downloadStatus;
+	}
+
+	public void setDownloadStatus(DownloadStatus downloadStatus) {
+		this.downloadStatus = downloadStatus;
+	}
+
+	public static enum DownloadStatus {
+    	UNDOWNLOAD,
+    	DOWNLOADING,
+    	DOWNLOADED;
+    }
 
     public boolean isDownloading() {
         return downloading;

@@ -1,13 +1,15 @@
 package net.hoyoung.imooc.downloader.download;
 
-import net.hoyoung.imooc.downloader.model.DownloadInfo;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import net.hoyoung.imooc.downloader.model.DownloadInfo;
+import net.hoyoung.imooc.downloader.model.DownloadInfo.DownloadStatus;
+import net.hoyoung.imooc.downloader.utils.CommonStringUtils;
 
 /**
  * 下载调度器
@@ -41,20 +43,18 @@ public class DownloadScheduler {
     }
 	public void start() {
 		// 构造一个线程池
-		threadPool = new ThreadPoolExecutor(3, 5, 1000,
+		threadPool = new ThreadPoolExecutor(3, 3, 100,
 				TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1000),
 				new ThreadPoolExecutor.DiscardOldestPolicy());
 
 		for (DownloadInfo downloadInfo : tasks) {
 			BatchDownloadFile down = new BatchDownloadFile(downloadInfo);
 			threadPool.execute(down);
-            sleep(100);
 		}
 		while (threadPool.getActiveCount() > 0) {// 打印进度
 			printProgress();
             sleep(1000);
 		}
-		printProgress();
 		threadPool.shutdown();
 	}
 	
@@ -64,41 +64,47 @@ public class DownloadScheduler {
         this.initTaskSize = tasks.size();
 	}
 
+	private int progressStringLength = 0;
     /**
      * 打印进度
      */
 	private void printProgress(){
 		StringBuffer sb = new StringBuffer();
+		
 		Iterator<DownloadInfo> ite = tasks.iterator();
+		for (int i = 0; i < progressStringLength; i++) {
+        	System.out.print("\b");
+		}
+		int cnt = 0;
+		
         while(ite.hasNext()){
-			DownloadInfo downloadInfo = ite.next();
-            if(!downloadInfo.isDownloading()){
-                continue;
-            }
-            sb.setLength(0);//清空
-			sb.append("|");
-			int now = downloadInfo.getProgress()/5;
-			for (int i = 1; i <= 20; i++) {
-				if(i<=now){
-					sb.append(">");
-				}else{
-					sb.append("=");
-				}
-			}
-			sb.append("| ");
-			sb.append(downloadInfo.getProgress() + "% ");// 进度值
-			sb.append((downloadInfo.getLength()/1024/1024)+"M ");
-			sb.append(downloadInfo.getFileName());// 名称
-			
-			if(downloadInfo.getProgress()==100){
+        	DownloadInfo downloadInfo = ite.next();
+        	if(downloadInfo.getDownloadStatus()==DownloadStatus.UNDOWNLOAD){
+        		continue;
+			}else if(downloadInfo.getDownloadStatus()==DownloadStatus.DOWNLOADED){
 				ite.remove();
 			}
-            System.out.println(sb.toString());
+        	if(cnt++<3){
+        		sb.append(downloadInfo.getFileName()+" ");// 名称
+    			sb.append((downloadInfo.getLength()/1024/1024)+"M ");
+    			sb.append(downloadInfo.getProgress() + "% ");// 进度值
+    			sb.append(" | ");
+        	}
 		}
-        System.out.println("完成量："+(initTaskSize-tasks.size())+" / "+initTaskSize);
+        sb.append((initTaskSize-tasks.size())+"/"+initTaskSize);
+        System.out.print(sb.toString());
+        int tmp = CommonStringUtils.length(sb.toString());
+        // 先擦出长出来的部分
+        for (int i = 0; i < progressStringLength-tmp; i++) {
+			System.out.print(" ");
+		}
+        // 再退回去
+        for (int i = 0; i < progressStringLength-tmp; i++) {
+			System.out.print("\b");
+		}
+        progressStringLength = tmp;
 	}
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
 		List<DownloadInfo> tasks = new ArrayList<DownloadInfo>();
 
 		DownloadInfo c = new DownloadInfo();
